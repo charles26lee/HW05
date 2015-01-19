@@ -7,6 +7,7 @@ Compiled via command line using:
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <vector>
 #include <cmath>
@@ -163,12 +164,7 @@ void close();
 //Checks if two specific balls are colliding
 bool checkCollision(Circle&, Circle&);
 
-//Returns the indices of the colliding balls
-bool checkCollision();
-
-//Corrects colliding balls so they only intersect at one point
-void correctCollision();
-
+//Swap two variables
 void swap(double*, double*);
 
 //The window we'll be rendering to
@@ -204,8 +200,11 @@ int main(int argc, char *args[]){
 			//Number of balls spawned
 			const int BALLS = 50;
 			
-			for(int i = 0; i < 360; i += 360.0/BALLS){
-				Ball ball((SCREEN_WIDTH-Ball::BALL_WIDTH)/2+i*cos(i), (SCREEN_HEIGHT-Ball::BALL_HEIGHT)/2+i*sin(i), 0.5*((i+36)/30)*cos(i), 0.5*((i+36)/30)*sin(i));
+			for(int i = 0; i < BALLS; ++i){
+				Ball ball(
+					rand()%(SCREEN_WIDTH-Ball::BALL_WIDTH),
+					rand()%(SCREEN_HEIGHT-Ball::BALL_HEIGHT),
+					(rand()%5+1)*cos(i), (rand()%5+1)*sin(i));
 				gBalls.push_back(ball);
 			}
 			
@@ -227,11 +226,6 @@ int main(int argc, char *args[]){
 				for(int i = 0; i < gBalls.size(); ++i){
 					gBalls[i].move(i);
 					gBalls[i].render();
-				}
-				
-				//Adjusts all the balls so that none are colliding
-				while(checkCollision()){
-					correctCollision();
 				}
 				
 				//Update screen
@@ -484,6 +478,9 @@ void Ball::move(int index){
 			gBalls[i].mBall.uy = gCollision.ty*gCollision.t2+gCollision.ny*gCollision.n1;
 			
 			swap(&mBall.m, &gBalls[i].mBall.m);
+			
+			shift(-(gCollision.r-gCollision.m)*gCollision.nx/2, -(gCollision.r-gCollision.m)*gCollision.ny/2);
+			gBalls[i].shift((gCollision.r-gCollision.m)*gCollision.nx/2, (gCollision.r-gCollision.m)*gCollision.ny/2);
 		}
 	}
 	
@@ -618,29 +615,6 @@ bool checkCollision(Circle& c1, Circle& c2){
 	}
 	
 	return false;
-}
-
-bool checkCollision(){
-	for(int i = 0; i < gBalls.size(); ++i){
-		for(int j = 0; j < gBalls.size(); ++j){
-			if(j != i && checkCollision(gBalls[i].mBall, gBalls[j].mBall)){
-				return true;
-			}
-		}
-	}
-	
-	return false;
-}
-
-void correctCollision(){
-	for(int i = 0; i < gBalls.size(); ++i){
-		for(int j = 0; j < gBalls.size(); ++j){
-			if(j != i && checkCollision(gBalls[i].mBall, gBalls[j].mBall)){
-				gBalls[i].shift(-(gCollision.r-gCollision.m)*gCollision.nx/2, -(gCollision.r-gCollision.m)*gCollision.ny/2);
-				gBalls[j].shift((gCollision.r-gCollision.m)*gCollision.nx/2, (gCollision.r-gCollision.m)*gCollision.ny/2);
-			}
-		}
-	}
 }
 
 void swap(double* a, double* b){

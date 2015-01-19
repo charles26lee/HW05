@@ -36,11 +36,13 @@ struct Collision{
 	//Radius x 2
 	float r;
 	
-	//Normal vector
+	//Normal and tangent vectors
 	float nx, ny;
+	float tx, ty;
 	
-	//Projection along n
-	float p1, p2;
+	//Projection along n and t
+	float n1, n2;
+	float t1, t2;
 };
 
 //Texture wrapper class
@@ -221,15 +223,15 @@ int main(int argc, char *args[]){
 				SDL_SetRenderDrawColor(gRenderer, 0xB4, 0xB4, 0xB4, 0xFF);
 				SDL_RenderClear(gRenderer);
 				
-				//Adjusts all the balls so that none are colliding
-				while(checkCollision()){
-					correctCollision();
-				}
-				
 				//Move and render balls
 				for(int i = 0; i < gBalls.size(); ++i){
 					gBalls[i].move(i);
 					gBalls[i].render();
+				}
+				
+				//Adjusts all the balls so that none are colliding
+				while(checkCollision()){
+					correctCollision();
 				}
 				
 				//Update screen
@@ -475,11 +477,11 @@ void Ball::move(int index){
 	//Collision
 	for(int i = 0; i < gBalls.size(); ++i){
 		if(i != index && checkCollision(mBall, gBalls[i].mBall)){
-			mBall.ux = mBall.ux-2*(gCollision.p1)*gCollision.nx;
-			mBall.uy = mBall.uy-2*(gCollision.p1)*gCollision.ny;
+			mBall.ux = gCollision.tx*gCollision.t1+gCollision.nx*gCollision.n2;
+			mBall.uy = gCollision.ty*gCollision.t1+gCollision.ny*gCollision.n2;
 			
-			gBalls[i].mBall.ux = gBalls[i].mBall.ux+2*(gCollision.p2)*gCollision.nx;
-			gBalls[i].mBall.uy = gBalls[i].mBall.uy+2*(gCollision.p2)*gCollision.ny;
+			gBalls[i].mBall.ux = gCollision.tx*gCollision.t2+gCollision.nx*gCollision.n1;
+			gBalls[i].mBall.uy = gCollision.ty*gCollision.t2+gCollision.ny*gCollision.n1;
 			
 			swap(&mBall.m, &gBalls[i].mBall.m);
 		}
@@ -600,9 +602,17 @@ bool checkCollision(Circle& c1, Circle& c2){
 		gCollision.nx = (c2.x-c1.x)/gCollision.m;
 		gCollision.ny = (c2.y-c1.y)/gCollision.m;
 		
-		//Computes for the projection
-		gCollision.p1 = c1.ux*gCollision.nx+c1.uy*gCollision.ny;
-		gCollision.p2 = -(c2.ux*gCollision.nx+c2.uy*gCollision.ny);
+		//Computes for the tangent vector
+		gCollision.tx = -(c2.y-c1.y)/gCollision.m;
+		gCollision.ty = (c2.x-c1.x)/gCollision.m;
+		
+		//Computes for the projection along the normal
+		gCollision.n1 = c1.ux*gCollision.nx+c1.uy*gCollision.ny;
+		gCollision.n2 = c2.ux*gCollision.nx+c2.uy*gCollision.ny;
+		
+		//Computes for the projection along the tangent
+		gCollision.t1 = c1.ux*gCollision.tx+c1.uy*gCollision.ty;
+		gCollision.t2 = c2.ux*gCollision.tx+c2.uy*gCollision.ty;
 		
 		return true;
 	}
@@ -633,8 +643,8 @@ void correctCollision(){
 	}
 }
 
-void swap(double* m1, double* m2){
-	double t = *m1;
-	*m1 = *m2;
-	*m2 = t;
+void swap(double* a, double* b){
+	double t = *a;
+	*a = *b;
+	*b = t;
 }

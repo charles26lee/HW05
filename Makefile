@@ -1,11 +1,11 @@
 #--Source code--
-OBJ = bouncingBall.cpp
+OBJ = BouncingBall.cpp
 
 #--Compiler used--
 CC = g++
 
 #--Libraries we're linking against.--
-LIBRARY_LINKS = -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
+LIBRARY_LINKS = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image
 
 #--Name of our exectuable--
 OBJ_NAME = BouncingBall

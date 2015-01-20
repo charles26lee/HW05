@@ -15,7 +15,7 @@ Compiled via command line using:
 #define PI 3.14159265
 
 //Screen dimension constants
-const int SCREEN_WIDTH = 1200;
+const int SCREEN_WIDTH = 600;
 const int SCREEN_HEIGHT = 600;
 
 //A circle structure
@@ -24,9 +24,8 @@ struct Circle{
 	double x, y;
 	double r;
 	
-	//Magnitude and direction of the velocity
-	double m;
-	double ux, uy;
+	//Velocity
+	double vx, vy;
 };
 
 //A collision structure
@@ -164,9 +163,6 @@ void close();
 //Checks if two specific balls are colliding
 bool checkCollision(Circle&, Circle&);
 
-//Swap two variables
-void swap(double*, double*);
-
 //The window we'll be rendering to
 SDL_Window* gWindow = NULL;
 
@@ -204,7 +200,7 @@ int main(int argc, char *args[]){
 				Ball ball(
 					rand()%(SCREEN_WIDTH-Ball::BALL_WIDTH),
 					rand()%(SCREEN_HEIGHT-Ball::BALL_HEIGHT),
-					(rand()%5+1)*cos(i), (rand()%5+1)*sin(i));
+					(rand()%4+1)*cos(rand()%360*PI/180), (rand()%4+1)*sin(rand()%360*PI/180));
 				gBalls.push_back(ball);
 			}
 			
@@ -461,23 +457,20 @@ Ball::Ball(double sPosX, double sPosY, double sVelX, double sVelY){
 	mBall.y = sPosY;
 	mBall.r = BALL_WIDTH/2;
 	
-	//Initializes the unit vector and magnitude
-	mBall.m = sqrt(pow(sVelX, 2)+pow(sVelY, 2));
-	mBall.ux = sVelX/mBall.m;
-	mBall.uy = sVelY/mBall.m;
+	//Initializes the velocity
+	mBall.vx = sVelX;
+	mBall.vy = sVelY;
 }
 
 void Ball::move(int index){
 	//Collision
 	for(int i = 0; i < gBalls.size(); ++i){
 		if(i != index && checkCollision(mBall, gBalls[i].mBall)){
-			mBall.ux = gCollision.tx*gCollision.t1+gCollision.nx*gCollision.n2;
-			mBall.uy = gCollision.ty*gCollision.t1+gCollision.ny*gCollision.n2;
+			mBall.vx = gCollision.tx*gCollision.t1+gCollision.nx*gCollision.n2;
+			mBall.vy = gCollision.ty*gCollision.t1+gCollision.ny*gCollision.n2;
 			
-			gBalls[i].mBall.ux = gCollision.tx*gCollision.t2+gCollision.nx*gCollision.n1;
-			gBalls[i].mBall.uy = gCollision.ty*gCollision.t2+gCollision.ny*gCollision.n1;
-			
-			swap(&mBall.m, &gBalls[i].mBall.m);
+			gBalls[i].mBall.vx = gCollision.tx*gCollision.t2+gCollision.nx*gCollision.n1;
+			gBalls[i].mBall.vy = gCollision.ty*gCollision.t2+gCollision.ny*gCollision.n1;
 			
 			shift(-(gCollision.r-gCollision.m)*gCollision.nx/2, -(gCollision.r-gCollision.m)*gCollision.ny/2);
 			gBalls[i].shift((gCollision.r-gCollision.m)*gCollision.nx/2, (gCollision.r-gCollision.m)*gCollision.ny/2);
@@ -487,23 +480,23 @@ void Ball::move(int index){
 	//If the ball went too far left or right
 	if(mBall.x < 0){
 		mBall.x = 0;
-		mBall.ux *= -1;
+		mBall.vx *= -1;
 	}else if(mBall.x+BALL_WIDTH > SCREEN_WIDTH){
 		mBall.x = SCREEN_WIDTH-BALL_WIDTH;
-		mBall.ux *= -1;
+		mBall.vx *= -1;
 	}
 	
 	//If the ball went too far up or down
 	if(mBall.y < 0){
 		mBall.y = 0;
-		mBall.uy *= -1;
+		mBall.vy *= -1;
 	}else if(mBall.y+BALL_HEIGHT > SCREEN_HEIGHT){
 		mBall.y = SCREEN_HEIGHT-BALL_HEIGHT;
-		mBall.uy *= -1;
+		mBall.vy *= -1;
 	}
 	
 	//Move the ball
-	shift(mBall.ux*mBall.m, mBall.uy*mBall.m);
+	shift(mBall.vx, mBall.vy);
 }
 
 void Ball::shift(double x, double y){
@@ -604,21 +597,15 @@ bool checkCollision(Circle& c1, Circle& c2){
 		gCollision.ty = (c2.x-c1.x)/gCollision.m;
 		
 		//Computes for the projection along the normal
-		gCollision.n1 = c1.ux*gCollision.nx+c1.uy*gCollision.ny;
-		gCollision.n2 = c2.ux*gCollision.nx+c2.uy*gCollision.ny;
+		gCollision.n1 = c1.vx*gCollision.nx+c1.vy*gCollision.ny;
+		gCollision.n2 = c2.vx*gCollision.nx+c2.vy*gCollision.ny;
 		
 		//Computes for the projection along the tangent
-		gCollision.t1 = c1.ux*gCollision.tx+c1.uy*gCollision.ty;
-		gCollision.t2 = c2.ux*gCollision.tx+c2.uy*gCollision.ty;
+		gCollision.t1 = c1.vx*gCollision.tx+c1.vy*gCollision.ty;
+		gCollision.t2 = c2.vx*gCollision.tx+c2.vy*gCollision.ty;
 		
 		return true;
 	}
 	
 	return false;
-}
-
-void swap(double* a, double* b){
-	double t = *a;
-	*a = *b;
-	*b = t;
 }
